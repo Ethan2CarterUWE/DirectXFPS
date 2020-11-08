@@ -5,13 +5,16 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <d3d11.h>
-
+#include <DirectXPackedVector.h>
 #include<string>
 #include<sstream>
+#include <d3dcompiler.h>
 
 
 // include the Direct3D Library file
 #pragma comment (lib, "d3d11.lib")
+#pragma comment (lib, "D3DCompiler.lib")
+
 
 // define the screen resolution
 #define SCREEN_WIDTH  800
@@ -23,6 +26,15 @@ ID3D11Device* dev;                     // the pointer to our Direct3D device int
 ID3D11DeviceContext* devcon;           // the pointer to our Direct3D device context
 ID3D11RenderTargetView* backbuffer;    // the pointer to our back buffer
 
+ID3D11InputLayout* pLayout;            // the pointer to the input layout
+ID3D11VertexShader* pVS;               // the pointer to the vertex shader
+ID3D11PixelShader* pPS;                // the pointer to the pixel shader
+ID3D11Buffer* pVBuffer;                // the pointer to the vertex buffer
+
+// a struct to define a single vertex
+struct VERTEX { FLOAT X, Y, Z; D3DXCOLOR Color; };
+void InitGraphics(void);    // creates the shape to render
+void InitPipeline(void);    // loads and prepares the shaders
 
 // function prototypes
 void InitD3D(HWND hwnd);    // sets up and initializes Direct3D
@@ -165,6 +177,8 @@ void InitD3D(HWND hWnd)
     viewport.Height = SCREEN_HEIGHT;
 
     devcon->RSSetViewports(1, &viewport);
+    InitPipeline();
+    InitGraphics();
 }
 
 // this is the function used to render a single frame
@@ -174,7 +188,16 @@ void RenderFrame(void)
     float color[4] = { 0.0f, 0.3f, 0.4f, 1.0f };
     devcon->ClearRenderTargetView(backbuffer, color);
     // do 3D rendering on the back buffer here
+        // select which vertex buffer to display
+    UINT stride = sizeof(VERTEX);
+    UINT offset = 0;
+    devcon->IASetVertexBuffers(0, 1, &pVBuffer, &stride, &offset);
 
+    // select which primtive type we are using
+    devcon->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // draw the vertex buffer to the back buffer
+    devcon->Draw(3, 0);
     // switch the back buffer and the front buffer
     swapchain->Present(0, 0);
 }
@@ -184,12 +207,73 @@ void CleanD3D(void)
 {
     swapchain->SetFullscreenState(FALSE, NULL);    // switch to windowed mode
     // close and release all existing COM objects
+    pLayout->Release();
+    pVS->Release();
+    pPS->Release();
+    pVBuffer->Release();
     swapchain->Release();
     backbuffer->Release();
     dev->Release();
     devcon->Release();
 }
+// this is the function that creates the shape to render
+void InitGraphics()
+{
+    // create a triangle using the VERTEX struct
+    VERTEX OurVertices[] =
+    {
+        {0.0f, 0.5f, 0.0f, D3DXCOLOR(1.0f, 0.0f, 0.0f, 1.0f)},
+        {0.45f, -0.5, 0.0f, D3DXCOLOR(0.0f, 1.0f, 0.0f, 1.0f)},
+        {-0.45f, -0.5f, 0.0f, D3DXCOLOR(0.0f, 0.0f, 1.0f, 1.0f)}
+    };
 
+
+    // create the vertex buffer
+    D3D11_BUFFER_DESC bd;
+    ZeroMemory(&bd, sizeof(bd));
+
+    bd.Usage = D3D11_USAGE_DYNAMIC;                // write access access by CPU and GPU
+    bd.ByteWidth = sizeof(VERTEX) * 3;             // size is the VERTEX struct * 3
+    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;       // use as a vertex buffer
+    bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;    // allow CPU to write in buffer
+
+    dev->CreateBuffer(&bd, NULL, &pVBuffer);       // create the buffer
+
+
+    // copy the vertices into the buffer
+    D3D11_MAPPED_SUBRESOURCE ms;
+    devcon->Map(pVBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);    // map the buffer
+    memcpy(ms.pData, OurVertices, sizeof(OurVertices));                 // copy the data
+    devcon->Unmap(pVBuffer, NULL);                                      // unmap the buffer
+}
+
+
+// this function loads and prepares the shaders
+void InitPipeline()
+{
+    // load and compile the two shaders
+    ID3D10Blob* VS, * PS;
+    D3DCompileFromFile(L"shaders.shader", 0, 0, "VShader", "vs_4_0", 0, 0, 0, &VS, 0, 0);
+    D3DCompileFromFile(L"shaders.shader", 0, 0, "PShader", "ps_4_0", 0, 0, 0, &PS, 0, 0);
+
+    // encapsulate both shaders into shader objects
+    dev->CreateVertexShader(VS->GetBufferPointer(), VS->GetBufferSize(), NULL, &pVS);
+    dev->CreatePixelShader(PS->GetBufferPointer(), PS->GetBufferSize(), NULL, &pPS);
+
+    // set the shader objects
+    devcon->VSSetShader(pVS, 0, 0);
+    devcon->PSSetShader(pPS, 0, 0);
+
+    // create the input layout object
+    D3D11_INPUT_ELEMENT_DESC ied[] =
+    {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+
+    dev->CreateInputLayout(ied, 2, VS->GetBufferPointer(), VS->GetBufferSize(), &pLayout);
+    devcon->IASetInputLayout(pLayout);
+}
 
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
