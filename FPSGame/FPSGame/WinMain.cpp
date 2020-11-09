@@ -15,7 +15,6 @@
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "D3DCompiler.lib")
 
-
 // define the screen resolution
 #define SCREEN_WIDTH  800
 #define SCREEN_HEIGHT 600
@@ -32,7 +31,8 @@ ID3D11PixelShader* pPS;                // the pointer to the pixel shader
 ID3D11Buffer* pVBuffer;                // the pointer to the vertex buffer
 
 // a struct to define a single vertex
-struct VERTEX { FLOAT X, Y, Z; D3DXCOLOR Color; };
+
+struct VERTEX { FLOAT X, Y, Z; DirectX::PackedVector::XMCOLOR Color; };
 void InitGraphics(void);    // creates the shape to render
 void InitPipeline(void);    // loads and prepares the shaders
 
@@ -194,10 +194,10 @@ void RenderFrame(void)
     devcon->IASetVertexBuffers(0, 1, &pVBuffer, &stride, &offset);
 
     // select which primtive type we are using
-    devcon->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    devcon->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
     // draw the vertex buffer to the back buffer
-    devcon->Draw(3, 0);
+    devcon->Draw(6, 0);
     // switch the back buffer and the front buffer
     swapchain->Present(0, 0);
 }
@@ -222,9 +222,16 @@ void InitGraphics()
     // create a triangle using the VERTEX struct
     VERTEX OurVertices[] =
     {
-        {0.0f, 0.5f, 0.0f, D3DXCOLOR(1.0f, 0.0f, 0.0f, 1.0f)},
-        {0.45f, -0.5, 0.0f, D3DXCOLOR(0.0f, 1.0f, 0.0f, 1.0f)},
-        {-0.45f, -0.5f, 0.0f, D3DXCOLOR(0.0f, 0.0f, 1.0f, 1.0f)}
+        {0.5f, 0.5f, 0.5f, DirectX::PackedVector::XMCOLOR(1.0f, 0.0f, 0.0f, 1.0f)},
+        {0.5f, -0.5f, 0.5f, DirectX::PackedVector::XMCOLOR(01.0f, 1.0f, 0.0f, 1.0f)},
+        {-0.5f, -0.5f, 0.5f, DirectX::PackedVector::XMCOLOR(1.0f, 0.0f, 1.0f, 1.0f)},
+        {-0.5f, 0.5f, 0.0f, DirectX::PackedVector::XMCOLOR(1.0f, 0.0f, 1.0f, 1.0f)},
+        {0.5f, 0.5f, 0.0f, DirectX::PackedVector::XMCOLOR(1.0f, 1.0f, 1.0f, 1.0f)},
+        {0.5f, 0.5f, 0.5f, DirectX::PackedVector::XMCOLOR(1.0f, 0.0f, 1.0f, 1.0f)},
+
+
+
+
     };
 
 
@@ -252,9 +259,12 @@ void InitGraphics()
 void InitPipeline()
 {
     // load and compile the two shaders
-    ID3D10Blob* VS, * PS;
-    D3DCompileFromFile(L"shaders.shader", 0, 0, "VShader", "vs_4_0", 0, 0, 0, &VS, 0, 0);
-    D3DCompileFromFile(L"shaders.shader", 0, 0, "PShader", "ps_4_0", 0, 0, 0, &PS, 0, 0);
+   
+        ID3D10Blob* VS, * PS;
+
+        HRESULT result = D3DCompileFromFile(L"VertexShader.hlsl", NULL, NULL, "main", "vs_4_0", 0, 0, &VS, NULL);
+
+        D3DCompileFromFile(L"PixelShader.hlsl", NULL, NULL, "main", "ps_4_0", 0, 0, &PS, NULL);
 
     // encapsulate both shaders into shader objects
     dev->CreateVertexShader(VS->GetBufferPointer(), VS->GetBufferSize(), NULL, &pVS);
