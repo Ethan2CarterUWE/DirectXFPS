@@ -32,7 +32,22 @@ ID3D11Buffer* pVBuffer;                // the pointer to the vertex buffer
 
 // a struct to define a single vertex
 
-struct VERTEX { FLOAT X, Y, Z; DirectX::PackedVector::XMCOLOR Color; };
+//struct VERTEX { FLOAT X, Y, Z; DirectX::PackedVector::XMCOLOR Color; };
+struct VERTEX
+{
+    struct
+    {
+        float x;
+        float y;
+    } pos;
+    struct
+    {
+        unsigned char r;
+        unsigned char g;
+        unsigned char b;
+        unsigned char a;
+    } color;
+};
 void InitGraphics(void);    // creates the shape to render
 void InitPipeline(void);    // loads and prepares the shaders
 
@@ -194,10 +209,10 @@ void RenderFrame(void)
     devcon->IASetVertexBuffers(0, 1, &pVBuffer, &stride, &offset);
 
     // select which primtive type we are using
-    devcon->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    devcon->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // draw the vertex buffer to the back buffer
-    devcon->Draw(6, 0);
+    devcon->Draw(9, 0);
     // switch the back buffer and the front buffer
     swapchain->Present(0, 0);
 }
@@ -222,17 +237,38 @@ void InitGraphics()
     // create a triangle using the VERTEX struct
     VERTEX OurVertices[] =
     {
-        {0.5f, 0.5f, 0.5f, DirectX::PackedVector::XMCOLOR(1.0f, 0.0f, 0.0f, 1.0f)},
-        {0.5f, -0.5f, 0.5f, DirectX::PackedVector::XMCOLOR(01.0f, 1.0f, 0.0f, 1.0f)},
-        {-0.5f, -0.5f, 0.5f, DirectX::PackedVector::XMCOLOR(1.0f, 0.0f, 1.0f, 1.0f)},
-        {-0.5f, 0.5f, 0.0f, DirectX::PackedVector::XMCOLOR(1.0f, 0.0f, 1.0f, 1.0f)},
-        {0.5f, 0.5f, 0.0f, DirectX::PackedVector::XMCOLOR(1.0f, 1.0f, 1.0f, 1.0f)},
-        {0.5f, 0.5f, 0.5f, DirectX::PackedVector::XMCOLOR(1.0f, 0.0f, 1.0f, 1.0f)},
+         /*{0.0f, 0.5f, 0.0f, DirectX::PackedVector::XMCOLOR(1.0f, 0.0f, 0.0f, 1.0f)},
+       {0.45f, -0.5, 0.0f,  DirectX::PackedVector::XMCOLOR(0.0f, 1.0f, 0.0f, 1.0f)},
+       {-0.45f, -0.5f, 0.0f, DirectX::PackedVector::XMCOLOR(0.0f, 0.0f, 1.0f, 1.0f)}*/
 
+
+       /*{0.0f, 0.5f, 0.0f},
+       {0.45f, -0.5, 0.0f},
+       {-0.45f, -0.5f, 0.0f}*/
+
+        { 0.0f,0.5f,255,0,0,0 },
+		{ 0.5f,-0.5f,0,255,0,0 },
+		{ -0.5f,-0.5f,0,0,255,0 },
+      
+
+          { 0.5f,1.0f,255,0,0,0 },
+        { 1.0f,0.5f,0,255,0,0 },
+        { 0.5f,0.5f,0,0,255,0 },
+
+         { -1.0f,0.5f,255,0,0,0 },
+        { 0.5f,-0.5f,0,255,0,0 },
+        { -0.5f,0.5f,0,0,255,0 }
+
+        /*        {0.0f, 0.5f, 0.0f, D3DXCOLOR(1.0f, 0.0f, 0.0f, 1.0f)},
+        {0.45f, -0.5, 0.0f, D3DXCOLOR(0.0f, 1.0f, 0.0f, 1.0f)},
+        {-0.45f, -0.5f, 0.0f, D3DXCOLOR(0.0f, 0.0f, 1.0f, 1.0f)}*/
 
 
 
     };
+   // OurVertices[0].color.b = 255;
+    //OurVertices[1].color.b = 255;
+
 
 
     // create the vertex buffer
@@ -240,7 +276,7 @@ void InitGraphics()
     ZeroMemory(&bd, sizeof(bd));
 
     bd.Usage = D3D11_USAGE_DYNAMIC;                // write access access by CPU and GPU
-    bd.ByteWidth = sizeof(VERTEX) * 3;             // size is the VERTEX struct * 3
+    bd.ByteWidth = sizeof(VERTEX) * 9;             // size is the VERTEX struct * 3
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;       // use as a vertex buffer
     bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;    // allow CPU to write in buffer
 
